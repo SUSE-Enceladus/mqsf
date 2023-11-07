@@ -15,12 +15,12 @@ from mqsf.utils import setup_mq_log_handler
 
 class Service(object):
     """
-    Base class for RabbitMQ message broker
+    Base class for MQ message broker
 
     Attributes
 
     * :attr:`host`
-      RabbitMQ server host
+      MQ server host
 
     * :attr:`service_exchange`
       Name of service exchange
@@ -33,10 +33,10 @@ class Service(object):
         self.custom_args = custom_args
         self.config = config
 
-        # amqp settings
-        self.amqp_host = self.config.get_amqp_host()
-        self.amqp_user = self.config.get_amqp_user()
-        self.amqp_pass = self.config.get_amqp_pass()
+        # mq settings
+        self.mq_host = self.config.get_mq_host()
+        self.mq_user = self.config.get_mq_user()
+        self.mq_pass = self.config.get_mq_pass()
 
         self._open_connection()
 
@@ -48,9 +48,9 @@ class Service(object):
         self.log.propagate = False
 
         mq_handler = setup_mq_log_handler(
-            self.amqp_host,
-            self.amqp_user,
-            self.amqp_pass
+            self.mq_host,
+            self.mq_user,
+            self.mq_pass
         )
         self.log.addHandler(mq_handler)
         self.log.addFilter(BaseServiceFilter())
@@ -93,20 +93,20 @@ class Service(object):
         """
         Open connection or channel if currently closed or None.
 
-        Raises: MashRabbitConnectionException if connection
+        Raises: MQConnectionException if connection
                 cannot be established.
         """
         if not self.connection or self.connection.is_closed:
             try:
                 self.connection = Connection(
-                    self.amqp_host,
-                    self.amqp_user,
-                    self.amqp_pass,
+                    self.mq_host,
+                    self.mq_user,
+                    self.mq_pass,
                     kwargs={'heartbeat': 600}
                 )
             except Exception as e:
-                raise MashRabbitConnectionException(
-                    'Connection to RabbitMQ server failed: {0}'.format(e)
+                raise MQConnectionException(
+                    'Connection to MQ server failed: {0}'.format(e)
                 )
 
         if not self.channel or self.channel.is_closed:

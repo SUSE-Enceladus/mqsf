@@ -32,7 +32,7 @@ class MQSFCommandException(MQSFException):
 
 class MQConnectionException(MQSFException):
     """
-    Exception raised of connection to RabbitMQ server failed
+    Exception raised of connection to MQ server failed
     """
 
 
