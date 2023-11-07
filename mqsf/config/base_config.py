@@ -37,38 +37,38 @@ class BaseConfig(object):
             else:
                 return self.config_data.get(attribute)
 
-    def get_amqp_host(self):
+    def get_mq_host(self):
         """
-        Return the amqp host url.
+        Return the mp host url.
 
         :rtype: string
         """
-        amqp_host = self._get_attribute(
-            attribute='amqp_host'
+        mq_host = self._get_attribute(
+            attribute='mq_host'
         )
 
-        return amqp_host or Defaults.get_amqp_host()
+        return mq_host or Defaults.get_mq_host()
 
-    def get_amqp_user(self):
+    def get_mq_user(self):
         """
-        Return the amqp user name.
+        Return the mq user name.
 
         :rtype: string
         """
-        amqp_user = self._get_attribute(
-            attribute='amqp_user'
+        mq_user = self._get_attribute(
+            attribute='mq_user'
         )
 
-        return amqp_user or Defaults.get_amqp_user()
+        return mq_user or Defaults.get_mq_user()
 
-    def get_amqp_pass(self):
+    def get_mq_pass(self):
         """
-        Return the amqp password.
+        Return the mq password.
 
         :rtype: string
         """
-        amqp_pass = self._get_attribute(
-            attribute='amqp_pass'
+        mq_pass = self._get_attribute(
+            attribute='mq_pass'
         )
 
-        return amqp_pass or Defaults.get_amqp_pass()
+        return mq_pass or Defaults.get_mq_pass()

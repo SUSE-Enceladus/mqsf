@@ -13,13 +13,13 @@ class Defaults(object):
         return '/etc/mqsf/mqsf_config.yaml'
 
     @staticmethod
-    def get_amqp_host():
+    def get_mq_host():
         return 'localhost'
 
     @staticmethod
-    def get_amqp_user():
+    def get_mq_user():
         return 'guest'
 
     @staticmethod
-    def get_amqp_pass():
+    def get_mq_pass():
         return 'guest'
