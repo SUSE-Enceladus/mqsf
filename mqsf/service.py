@@ -11,6 +11,7 @@ from amqpstorm import Connection
 from mqsf.log.filter import BaseServiceFilter
 from mqsf.exceptions import MQConnectionException
 from mqsf.utils import setup_mq_log_handler
+from mqsf.config.base_config import BaseConfig
 
 
 class Service(object):
@@ -25,13 +26,12 @@ class Service(object):
     * :attr:`service_exchange`
       Name of service exchange
     """
-    def __init__(self, service_exchange, config, custom_args=None):
+    def __init__(self, service_exchange):
         self.channel = None
         self.connection = None
 
         self.service_exchange = service_exchange
-        self.custom_args = custom_args
-        self.config = config
+        self.config = BaseConfig()  # TODO: determine how to set config file
 
         # mq settings
         self.mq_host = self.config.get_mq_host()
