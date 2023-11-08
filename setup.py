@@ -48,10 +48,7 @@ setup(
     url='https://github.com/SUSE-Enceladus/mqsf',
     entry_points={
         'console_scripts': [
-            'orc=mqsf.test:run'
-        ],
-        'mqsf': [
-            'azure = mqsf.azure_plugin'
+            'mqsf=mqsf:main'
         ]
     },
     packages=['mqsf'],
