@@ -9,6 +9,8 @@ import signal
 
 from amqpstorm import AMQPError
 
+from pluggy import PluginManager
+
 from apscheduler import events
 from apscheduler.jobstores.base import ConflictingIdError
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -20,6 +22,8 @@ from mqsf.exceptions import MessageServiceException
 from mqsf.service import Service
 from mqsf.status_levels import EXCEPTION, SUCCESS
 from mqsf.json_format import JsonFormat
+from mqsf.job_factory import BaseJobFactory
+from mqsf import no_op_job
 from mqsf.utils import (
     remove_file,
     persist_json,
@@ -30,13 +34,11 @@ from mqsf.utils import (
 
 class MessageService(Service):
     """
-    Base class for MASH services that live in the image listener.
+    Base class for message services that live in the image listener.
     """
     def post_init(self):
         """Initialize base service class and job scheduler."""
         self.listener_queue = 'listener'
-        self.service_queue = 'service'
-        self.job_document_key = 'job_document'
         self.listener_msg_key = 'listener_msg'
 
         self.jobs = {}
@@ -51,15 +53,17 @@ class MessageService(Service):
 
         self.prev_service = self._get_previous_service()
 
-        if not self.custom_args:
-            self.custom_args = {}
+        pm = PluginManager('mqsf')
 
-        if 'job_factory' not in self.custom_args:
-            raise MessageServiceException(
-                'Job factory is required as a custom arg in listener service.'
-            )
-        else:
-            self.job_factory = self.custom_args['job_factory']
+        if self.config.get_no_op_okay():
+            pm.register(no_op_job, 'NoOpJob')
+
+        # Create job factory
+        self.job_factory = BaseJobFactory(
+            service_name=self.service_exchange,
+            plugin_manager=pm,
+            can_skip=self.config.get_no_op_okay()
+        )
 
         logfile_handler = setup_logfile(
             self.config.get_log_file(self.service_exchange)
@@ -67,16 +71,10 @@ class MessageService(Service):
         self.log.addHandler(logfile_handler)
 
         self.bind_queue(
-            self.service_exchange, self.job_document_key, self.service_queue
-        )
-        self.bind_queue(
             self.prev_service, self.listener_msg_key, self.listener_queue
         )
 
-        thread_pool_count = self.custom_args.get(
-            'thread_pool_count',
-            self.config.get_base_thread_pool_count()
-        )
+        thread_pool_count = self.config.get_base_thread_pool_count()
         executors = {
             'default': ThreadPoolExecutor(thread_pool_count)
         }
@@ -96,43 +94,6 @@ class MessageService(Service):
         restart_jobs(self.job_directory, self._add_job)
         self.start()
 
-    def _add_job(self, job_config):
-        """
-        Create job using job factory if job id does not already exist.
-
-        Job config is persisted to disk if not already done.
-        """
-        job_id = job_config['id']
-
-        if job_id not in self.jobs:
-            try:
-                job = self.job_factory.create_job(job_config, self.config)
-            except Exception as error:
-                self.log.error(
-                    'Invalid job: {0}.'.format(error)
-                )
-            else:
-                self.jobs[job.id] = job
-                job.log_callback = self.log
-
-                if 'job_file' not in job_config:
-                    job_config['job_file'] = '{0}job-{1}.json'.format(
-                        self.job_directory, job_id
-                    )
-                    persist_json(
-                        job_config['job_file'], job_config
-                    )
-                    job.job_file = job_config['job_file']
-
-                self.log.info(
-                    'Job queued, awaiting listener message.',
-                    extra=job.get_job_id()
-                )
-        else:
-            self.log.warning(
-                'Job already queued.',
-                extra={'job_id': job_id}
-            )
 
     def _cleanup_job(self, job_id):
         """
@@ -140,13 +101,12 @@ class MessageService(Service):
 
         Delete job and notify the next service.
         """
-        job = self.jobs[job_id]
+        job_config = self.jobs[job_id]
 
-        self.log.warning('Failed upstream.', extra=job.get_job_id())
-        self._delete_job(job.id)
+        self.log.warning('Failed upstream.', extra={'job_id': job_id})
+        self._delete_job(job_id)
 
-        message = self._get_status_message(job)
-        self._publish_message(message, job.id)
+        self._publish_message(job_config, job_id)
 
     def _delete_job(self, job_id):
         """
@@ -155,14 +115,19 @@ class MessageService(Service):
         Also attempt to remove any running instances of the job.
         """
         if job_id in self.jobs:
-            job = self.jobs[job_id]
             self.log.info(
                 'Deleting job.',
-                extra=job.get_job_id()
+                extra={'job_id': job_id}
             )
 
             del self.jobs[job_id]
-            remove_file(job.job_file)
+
+            job_file = '{0}job-{1}.json'.format(
+                self.job_directory,
+                job_id
+            )
+
+            remove_file(job_file)
         else:
             self.log.warning(
                 'Job deletion failed, job is not queued.',
@@ -185,18 +150,6 @@ class MessageService(Service):
 
         return services[index]
 
-    def _get_status_message(self, job):
-        """
-        Build and return json message.
-
-        Message contains completion status to post to next service exchange.
-        """
-        key = '{0}_result'.format(self.service_exchange)
-        return JsonFormat.json_message(
-            {
-                key: job.get_status_message()
-            }
-        )
 
     def _handle_listener_message(self, message):
         """
@@ -212,29 +165,27 @@ class MessageService(Service):
             status = listener_msg['status']
             job_id = listener_msg['id']
 
-        if job_id and job_id in self.jobs:
-            job = self.jobs[listener_msg['id']]
-            job.listener_msg = message
-            job.set_status_message(listener_msg)
+        if job_id and job_id not in self.jobs:
+            self.jobs[job_id] = listener_msg
+
+            job_file = '{0}job-{1}.json'.format(
+                self.job_directory,
+                job_id
+            )
+            persist_json(
+                job_file,
+                listener_msg
+            )
 
             if status == SUCCESS:
-                self._schedule_job(job.id)
-                return  # Don't ack message until job finishes
+                self._schedule_job(job_id)
             else:
                 self._cleanup_job(job_id)
-
-        message.ack()
-
-    def _handle_service_message(self, message):
-        """
-        Callback for events from jobcreator.
-        """
-        job_key = '{0}_job'.format(self.service_exchange)
-        try:
-            job_desc = json.loads(message.body)
-            self._add_job(job_desc[job_key])
-        except Exception as e:
-            self.log.error('Error adding job: {0}.'.format(e))
+        elif job_id in self.jobs:
+            self.log.warning(
+                'Job already queued.',
+                extra={'job_id': job_id}
+            )
 
         message.ack()
 
@@ -245,13 +196,13 @@ class MessageService(Service):
         Handle exceptions and errors that occur and logs info to job log.
         """
         job_id = event.job_id
-        job = self.jobs[job_id]
-        metadata = job.get_job_id()
+        job_config = self.jobs[job_id]
+        metadata = {'job_id': job_id}
 
         self._delete_job(job_id)
 
         if event.exception:
-            job.status = EXCEPTION
+            job_config['status'] = EXCEPTION
             msg = 'Exception in {0}: {1}'.format(
                 self.service_exchange,
                 event.exception
@@ -261,7 +212,7 @@ class MessageService(Service):
                 msg,
                 extra=metadata
             )
-        elif job.status == SUCCESS:
+        elif job_config['status'] == SUCCESS:
             self.log.info(
                 '{0} successful.'.format(
                     self.service_exchange
@@ -276,9 +227,7 @@ class MessageService(Service):
                 extra=metadata
             )
 
-        message = self._get_status_message(job)
-        self._publish_message(message, job.id)
-        job.listener_msg.ack()
+        self._publish_message(job_config, job_id)
 
     def _process_job_missed(self, event):
         """
@@ -287,8 +236,7 @@ class MessageService(Service):
         This should not happen as no jobs are scheduled, log any occurrences.
         """
         job_id = event.job_id
-        job = self.jobs[job_id]
-        metadata = job.get_job_id()
+        metadata ={'job_id': job_id}
 
         self.log.warning(
             'Job missed during {0}.'.format(
@@ -333,8 +281,16 @@ class MessageService(Service):
         """
         Process job based on job id.
         """
-        job = self.jobs[job_id]
-        job.process_job()
+        job_config = self.jobs[job_id]
+
+        try:
+            plugin = self.job_factory.create_job(job_config)
+        except Exception as error:
+            self.log.error(
+                'Invalid job: {0}.'.format(error)
+            )
+
+        plugin.run_task(job_config, self.log)
 
     def _get_listener_msg(self, message, key):
         """Load json and attempt to get message by key."""
@@ -363,11 +319,6 @@ class MessageService(Service):
         Start listener service.
         """
         self.scheduler.start()
-        self.consume_queue(
-            self._handle_service_message,
-            self.service_queue,
-            self.service_exchange
-        )
         self.consume_queue(
             self._handle_listener_message,
             self.listener_queue,
