@@ -51,7 +51,7 @@ class MessageService(Service):
             self.job_directory, exist_ok=True
         )
 
-        self.prev_service = self._get_previous_service()
+        self.prev_service = self.config.get_previous_service()
 
         pm = PluginManager('mqsf')
 
@@ -71,7 +71,9 @@ class MessageService(Service):
         self.log.addHandler(logfile_handler)
 
         self.bind_queue(
-            self.prev_service, self.listener_msg_key, self.listener_queue
+            self.prev_service,
+            self.listener_msg_key,
+            self.listener_queue
         )
 
         thread_pool_count = self.config.get_base_thread_pool_count()
@@ -133,23 +135,6 @@ class MessageService(Service):
                 'Job deletion failed, job is not queued.',
                 extra={'job_id': job_id}
             )
-
-    def _get_previous_service(self):
-        """
-        Return the previous service based on the current exchange.
-        """
-        services = self.config.get_service_names()
-
-        try:
-            index = services.index(self.service_exchange) - 1
-        except ValueError:
-            return None
-
-        if index < 0:
-            return None
-
-        return services[index]
-
 
     def _handle_listener_message(self, message):
         """

@@ -23,3 +23,23 @@ class Defaults(object):
     @staticmethod
     def get_mq_pass():
         return 'guest'
+
+    @classmethod
+    def get_base_job_directory(self):
+        return '/var/lib/mqsf/'
+
+    @classmethod
+    def get_job_directory(self, service_name):
+        return '{0}_jobs/'.format(service_name)
+
+    @classmethod
+    def get_log_directory(self):
+        return '/var/log/msqf/'
+
+    @classmethod
+    def get_no_op_okay(self):
+        return True
+
+    @staticmethod
+    def get_base_thread_pool_count():
+        return 10
