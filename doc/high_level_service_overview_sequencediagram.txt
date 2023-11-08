@@ -1,0 +1,35 @@
+title MQSF service workflow
+
+
+participant INITIATOR
+participantgroup #lightgrey SERVICE EXCHANGE
+fontawesome5regular f0f3 RK 'job_document'
+fontawesome5regular f0f3 RK 'listener_msg'
+end
+participantgroup MQSF BASED SERVICE
+participantgroup #lightblue Provided by MQSF
+participant MQSF BASE
+end
+participantgroup #lightgreen Implemented by the service
+participant CONFIG
+participant PLUGIN IMPLEMENTATION
+end
+end
+
+# Initializations
+
+CONFIG-->MQSF BASE: Provides simple config
+PLUGIN IMPLEMENTATION-->MQSF BASE: provides hook implementation
+note over MQSF BASE: Initializes
+MQSF BASE-->RK 'job_document': Sets listener on input MQ
+box over INITIATOR: The INITIATOR service has to\nlisten on the SERVICE EXCHANGE to\n receive job results.
+INITIATOR-->RK 'listener_msg': Starts listening on results queue
+INITIATOR->RK 'job_document': Publishes service request job\n (includes ID)
+RK 'job_document'->MQSF BASE: Receives the service request
+MQSF BASE-->PLUGIN IMPLEMENTATION: Invokes plugin logic
+box over PLUGIN IMPLEMENTATION: Plugin logic gets exec
+PLUGIN IMPLEMENTATION-->MQSF BASE: returns result data
+MQSF BASE->RK 'listener_msg':Publishes service result\n(includes ID)\n
+RK 'listener_msg'->INITIATOR:Receives service result\n(includes ID)
+box over INITIATOR: Correlates its response \nwith the request \nusing ID and continues with\nservice logics
+
