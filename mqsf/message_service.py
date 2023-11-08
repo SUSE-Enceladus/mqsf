@@ -61,7 +61,8 @@ class MessageService(Service):
         # Create job factory
         self.job_factory = BaseJobFactory(
             service_name=self.service_exchange,
-            plugin_manager=pm
+            plugin_manager=pm,
+            can_skip=self.config.get_no_op_okay()
         )
 
         logfile_handler = setup_logfile(

@@ -11,32 +11,35 @@ class BaseJobFactory(object):
     Base Job Factory.
     """
     def __init__(
-        self, service_name, plugin_manager, job_type_key=None, can_skip=False
+        self, service_name, plugin_manager, plugin_key=None, can_skip=False
     ):
         self.service_name = service_name
         self.plugin_manager = plugin_manager
-        self.job_type_key = job_type_key or 'cloud'
         self.can_skip = can_skip
+        self.plugin_key = plugin_key or 'plugin'
 
     def create_job(self, job_config):
         """
         Create new instance of job based on type,
         """
-        job_type = job_config.get(self.job_type_key)
+        plugin_name = job_config.get(self.plugin_key)
 
-        if not job_type and self.can_skip:
-            job_type = 'NoOpJob'
-        elif not job_type:
-            raise MashJobException('No job type provided, cannot create job.')
-        else:
-            try:
-                job_plugin = self.plugin_manager.get_plugin(name=job_type)
-            except KeyError:
-                raise MashJobException(
-                    'Job type {0} is not supported in {1} service.'.format(
-                        job_type,
-                        self.service_name
-                    )
+        if not plugin_name:
+            raise MQSFJobException(
+                'No plugin type provided, cannot create job.'
+            )
+
+        job_plugin = self.plugin_manager.get_plugin(name=plugin_name)
+
+        if not job_plugin and not self.can_skip:
+            raise MQSFJobException(
+                'Plugin type {0} is not supported in {1} service.'.format(
+                    plugin_name,
+                    self.service_name
                 )
+            )
+
+        if not job_plugin and self.can_skip:
+            job_plugin = self.plugin_manager.get_plugin(name='NoOpJob')
 
         return job_plugin
