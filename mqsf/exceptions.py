@@ -54,6 +54,12 @@ class MQSFLoggerException(MQSFException):
     """
 
 
+class MQSFJobException(MQSFException):
+    """
+    Base class to handle all job exceptions.
+    """
+
+
 class MessageServiceException(MQSFException):
     """
     Exception raised if an error occurs in message service.

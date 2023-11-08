@@ -1,6 +1,4 @@
-import pluggy
-
-hookimpl = pluggy.HookimplMarker('mqsf')
+from mqsf import hookimpl
 
 
 @hookimpl

@@ -26,14 +26,14 @@ class BaseJobFactory(object):
 
         if not plugin_name:
             raise MQSFJobException(
-                'No plugin type provided, cannot create job.'
+                'No plugin type provided, cannot create job'
             )
 
         job_plugin = self.plugin_manager.get_plugin(name=plugin_name)
 
         if not job_plugin and not self.can_skip:
             raise MQSFJobException(
-                'Plugin type {0} is not supported in {1} service.'.format(
+                'Plugin type {0} is not supported in {1} service'.format(
                     plugin_name,
                     self.service_name
                 )

@@ -9,11 +9,6 @@ import logging
 import os
 import random
 import requests
-import hashlib
-
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
 
 from contextlib import contextmanager, suppress
 from string import ascii_lowercase
@@ -63,37 +58,6 @@ def get_key_from_file(key_file_path):
         key = key_file.read().strip()
 
     return key
-
-
-def create_ssh_key_pair(ssh_private_key_file):
-    """
-    Create ssh key pair and store in ssh_private_key_file.
-    """
-    # Generate private key
-    private_key = rsa.generate_private_key(
-        public_exponent=65537, key_size=4096, backend=default_backend()
-    )
-
-    # Get public key
-    public_key = private_key.public_key()
-
-    # Write pem formatted private key to file
-    pem_private_key = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-    with open(ssh_private_key_file, 'wb') as private_key_file:
-        private_key_file.write(pem_private_key)
-
-    # Write OpenSSH formatted public key to file
-    ssh_public_key = public_key.public_bytes(
-        encoding=serialization.Encoding.OpenSSH,
-        format=serialization.PublicFormat.OpenSSH
-    )
-
-    with open(''.join([ssh_private_key_file, '.pub']), 'wb') as public_key_file:
-        public_key_file.write(ssh_public_key)
 
 
 def format_string_with_date(value, timestamp=None, date_format='%Y%m%d'):
@@ -224,28 +188,6 @@ def setup_mq_log_handler(host, username, password):
     rabbit_handler.setFormatter(get_logging_formatter())
 
     return rabbit_handler
-
-
-def get_fingerprint_from_private_key(private_key_value):
-    try:
-        private_key_value = private_key_value.encode()
-    except AttributeError:
-        pass
-
-    private_key = serialization.load_pem_private_key(
-        private_key_value,
-        password=None,
-        backend=default_backend()
-    )
-    public_key = private_key.public_key()
-
-    ssh_public_key = public_key.public_bytes(
-        encoding=serialization.Encoding.DER,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    )
-    digest = hashlib.md5(ssh_public_key).hexdigest()
-
-    return ':'.join(a + b for a, b in zip(digest[::2], digest[1::2]))
 
 
 def normalize_dictionary(data):

@@ -102,7 +102,9 @@ class Service(object):
                     self.mq_host,
                     self.mq_user,
                     self.mq_pass,
-                    kwargs={'heartbeat': 600}
+                    port=5672,  # TODO: add config option for port
+                    virtual_host='my_vhost',  # TODO: add config option for vhost  # noqa
+                    heartbeat=600  # TODO: add config option for heartbeat
                 )
             except Exception as e:
                 raise MQConnectionException(

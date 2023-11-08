@@ -34,7 +34,7 @@ class Defaults(object):
 
     @classmethod
     def get_log_directory(self):
-        return '/var/log/msqf/'
+        return '/var/log/mqsf/'
 
     @classmethod
     def get_no_op_okay(self):
