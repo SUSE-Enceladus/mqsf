@@ -50,6 +50,9 @@ class Service(object):
         self.mq_host = self.config.get_mq_host()
         self.mq_user = self.config.get_mq_user()
         self.mq_pass = self.config.get_mq_pass()
+        self.mq_port = self.config.get_mq_port()
+        self.mq_vhost = self.config.get_mq_vhost()
+        self.mq_heartbeat = self.config.get_mq_heartbeat()
 
         self._open_connection()
 
@@ -63,7 +66,8 @@ class Service(object):
         mq_handler = setup_mq_log_handler(
             self.mq_host,
             self.mq_user,
-            self.mq_pass
+            self.mq_pass,
+            self.mq_port
         )
         self.log.addHandler(mq_handler)
         self.log.addFilter(BaseServiceFilter())
@@ -115,9 +119,9 @@ class Service(object):
                     self.mq_host,
                     self.mq_user,
                     self.mq_pass,
-                    port=5672,  # TODO: add config option for port
-                    virtual_host='my_vhost',  # TODO: add config option for vhost  # noqa
-                    heartbeat=600  # TODO: add config option for heartbeat
+                    self.mq_port,
+                    virtual_host=self.mq_vhost,
+                    heartbeat=self.mq_heartbeat
                 )
             except Exception as e:
                 raise MQConnectionException(

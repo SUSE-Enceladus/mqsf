@@ -27,6 +27,9 @@ DEFAULT_CONFIG_FILE = '/etc/mqsf/mqsf_config.yaml'
 DEFAULT_MQ_HOST = 'localhost'
 DEFAULT_MQ_USER = 'guest'
 DEFAULT_MQ_PASS = 'guest'
+DEFAULT_MQ_PORT = 5672
+DEFAULT_MQ_VHOST = '/'
+DEFAULT_MQ_HEARTBEAT = 600
 DEFAULT_LOG_DIRECTORY = '/var/log/mqsf/'
 DEFAULT_JOB_DIRECTORY_TEMPLATE = '{0}_jobs/'
 DEFAULT_BASE_JOB_DIRECTORY = '/var/lib/mqsf/'
@@ -98,6 +101,42 @@ class BaseConfig(object):
         )
 
         return mq_pass or DEFAULT_MQ_PASS
+
+    def get_mq_port(self):
+        """
+        Return the mq port.
+
+        :rtype: string
+        """
+        mq_port = self._get_attribute(
+            attribute='mq_port'
+        )
+
+        return mq_port or DEFAULT_MQ_PORT
+
+    def get_mq_vhost(self):
+        """
+        Return the mq vhost.
+
+        :rtype: string
+        """
+        mq_vhost = self._get_attribute(
+            attribute='mq_vhost'
+        )
+
+        return mq_vhost or DEFAULT_MQ_VHOST
+
+    def get_mq_heartbeat(self):
+        """
+        Return the mq heartbeat.
+
+        :rtype: string
+        """
+        mq_heartbeat = self._get_attribute(
+            attribute='mq_hearbeat'
+        )
+
+        return mq_heartbeat or DEFAULT_MQ_HEARTBEAT
 
     def get_log_directory(self):
         """
