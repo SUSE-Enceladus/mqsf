@@ -22,8 +22,6 @@ import signal
 
 from amqpstorm import AMQPError
 
-from pluggy import PluginManager
-
 from apscheduler import events
 from apscheduler.jobstores.base import ConflictingIdError
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -34,8 +32,8 @@ from pytz import utc
 from mqsf.service import Service
 from mqsf.status_levels import EXCEPTION, SUCCESS
 from mqsf.job_factory import BaseJobFactory
-from mqsf import no_op_job
-from mqsf import hookspecs
+from mqsf import no_op_job, plugin_manager
+from mqsf.hookspecs import MQSFSpec
 from mqsf.json_format import JsonFormat
 from mqsf.utils import (
     remove_file,
@@ -66,17 +64,17 @@ class MessageService(Service):
 
         self.prev_service = self.config.get_previous_service()
 
-        pm = PluginManager('mqsf')
-        pm.add_hookspecs(hookspecs)
-        pm.load_setuptools_entrypoints('mqsf')
+        plugin_manager.add_hookspecs(MQSFSpec)
+        plugin_manager.load_setuptools_entrypoints('mqsf')
 
         if self.config.get_no_op_okay():
-            pm.register(no_op_job, 'NoOpJob')
+            plugin_manager.register(no_op_job, 'NoOpJob')
 
         # Create job factory
         self.job_factory = BaseJobFactory(
             service_name=self.service_exchange,
-            plugin_manager=pm,
+            plugin_manager=plugin_manager,
+            plugin_key=self.config.get_plugin_key(),
             can_skip=self.config.get_no_op_okay()
         )
 
@@ -312,7 +310,7 @@ class MessageService(Service):
             job_config['status'] = EXCEPTION
             job_config.get('errors', []).append(error)
         else:
-            plugin.run_task(job_config, self.log)
+            plugin.run_task(self, job_config, self.log)
 
     def _get_listener_msg(self, message, key):
         """Load json and attempt to get message by key."""

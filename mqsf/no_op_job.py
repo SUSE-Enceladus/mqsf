@@ -20,6 +20,6 @@ from mqsf import hookimpl
 
 
 @hookimpl
-def run_task(job_config, log_callback):
+def run_task(data, log_callback):
     """Run the workload"""
     return

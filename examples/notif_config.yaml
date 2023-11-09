@@ -1,0 +1,5 @@
+mq_user: user
+mq_pass: password
+previous_service: wx
+plugin_key: notification_type
+no_op_okay: false

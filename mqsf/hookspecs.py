@@ -22,6 +22,7 @@ import pluggy
 hookspec = pluggy.HookspecMarker('mqsf')
 
 
-@hookspec
-def run_task(job_config, log_callback):
-    """Run the workload"""
+class MQSFSpec(object):
+    @hookspec
+    def run_task(self, data, log_callback):
+        """Run the workload"""
