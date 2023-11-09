@@ -35,6 +35,8 @@ from mqsf.service import Service
 from mqsf.status_levels import EXCEPTION, SUCCESS
 from mqsf.job_factory import BaseJobFactory
 from mqsf import no_op_job
+from mqsf import hookspecs
+from mqsf.json_format import JsonFormat
 from mqsf.utils import (
     remove_file,
     persist_json,
@@ -65,6 +67,8 @@ class MessageService(Service):
         self.prev_service = self.config.get_previous_service()
 
         pm = PluginManager('mqsf')
+        pm.add_hookspecs(hookspecs)
+        pm.load_setuptools_entrypoints('mqsf')
 
         if self.config.get_no_op_okay():
             pm.register(no_op_job, 'NoOpJob')
@@ -259,10 +263,12 @@ class MessageService(Service):
             extra=metadata
         )
 
-    def _publish_message(self, message, job_id):
+    def _publish_message(self, job_config, job_id):
         """
         Publish message to next service exchange.
         """
+        message = self._get_status_message(job_config)
+
         try:
             self.publish_job_result(self.service_exchange, message)
         except AMQPError:
@@ -323,6 +329,19 @@ class MessageService(Service):
             listener_msg = None
 
         return listener_msg
+
+    def _get_status_message(self, job_config):
+        """
+        Build and return json message.
+
+        Message contains completion status to post to next service exchange.
+        """
+        key = '{0}_result'.format(self.service_exchange)
+        return JsonFormat.json_message(
+            {
+                key: job_config
+            }
+        )
 
     def publish_job_result(self, exchange, message):
         """
