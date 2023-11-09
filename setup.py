@@ -46,11 +46,6 @@ setup(
     author='SUSE',
     author_email='public-cloud-dev@susecloud.net',
     url='https://github.com/SUSE-Enceladus/mqsf',
-    entry_points={
-        'console_scripts': [
-            'mqsf=mqsf:main'
-        ]
-    },
     packages=['mqsf'],
     include_package_data=True,
     python_requires='>=3.6',

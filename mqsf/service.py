@@ -44,7 +44,7 @@ class Service(object):
         self.connection = None
 
         self.service_exchange = service_exchange
-        self.config = BaseConfig()  # TODO: determine how to set config file
+        self.config = BaseConfig(f'/etc/mqsf/{service_exchange}_config.yaml')  # TODO: determine how to set config file
 
         # mq settings
         self.mq_host = self.config.get_mq_host()
