@@ -32,6 +32,7 @@ DEFAULT_JOB_DIRECTORY_TEMPLATE = '{0}_jobs/'
 DEFAULT_BASE_JOB_DIRECTORY = '/var/lib/mqsf/'
 DEFAULT_NO_OP_OKAY = True
 DEFAULT_BASE_THREAD_POOL_COUNT = 10
+DEFAULT_PLUGIN_KEY = 'plugin'
 
 
 class BaseConfig(object):
@@ -169,4 +170,4 @@ class BaseConfig(object):
         Return the plugin key name to use for determining what plugin to run.
         """
         plugin_key = self._get_attribute(attribute='plugin_key')
-        return plugin_key or 'plugin'
+        return plugin_key or DEFAULT_PLUGIN_KEY
