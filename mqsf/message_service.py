@@ -173,10 +173,7 @@ class MessageService(Service):
         """
         Callback for listener messages.
         """
-        listener_msg = self._get_listener_msg(
-            message.body,
-            '{0}_result'.format(self.prev_service)
-        )
+        listener_msg = self._get_listener_msg(message.body)
 
         job_id = None
         if listener_msg:
@@ -314,18 +311,12 @@ class MessageService(Service):
         else:
             plugin.run_task(job_config, self.log)
 
-    def _get_listener_msg(self, message, key):
+    def _get_listener_msg(self, message):
         """Load json and attempt to get message by key."""
         try:
-            listener_msg = json.loads(message)[key]
-        except Exception:
-            self.log.error(
-                'Invalid listener message: {0}, '
-                'missing key: {1}'.format(
-                    message,
-                    key
-                )
-            )
+            listener_msg = json.loads(message)
+        except Exception as e:
+            self.log.error('Invalid listener message: {0}'.format(str(e)))
             listener_msg = None
 
         return listener_msg
@@ -336,12 +327,7 @@ class MessageService(Service):
 
         Message contains completion status to post to next service exchange.
         """
-        key = '{0}_result'.format(self.service_exchange)
-        return JsonFormat.json_message(
-            {
-                key: job_config
-            }
-        )
+        return JsonFormat.json_message(job_config)
 
     def publish_job_result(self, exchange, message):
         """
