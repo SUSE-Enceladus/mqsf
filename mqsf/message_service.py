@@ -67,11 +67,11 @@ class MessageService(Service):
         self.prev_service = self.config.get_previous_service()
 
         pm = PluginManager('mqsf')
+        pm.add_hookspecs(hookspecs)
+        pm.load_setuptools_entrypoints('mqsf')
 
         if self.config.get_no_op_okay():
-            pm.add_hookspecs(hookspecs)
             pm.register(no_op_job, 'NoOpJob')
-            pm.load_setuptools_entrypoints('mqsf')
 
         # Create job factory
         self.job_factory = BaseJobFactory(
