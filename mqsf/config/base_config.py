@@ -20,7 +20,19 @@ import os
 import yaml
 
 from mqsf.exceptions import MQSFConfigException
-from mqsf.config.base_defaults import Defaults
+
+
+# Default config values
+DEFAULT_CONFIG_FILE = '/etc/mqsf/mqsf_config.yaml'
+DEFAULT_MQ_HOST = 'localhost'
+DEFAULT_MQ_USER = 'guest'
+DEFAULT_MQ_PASS = 'guest'
+DEFAULT_LOG_DIRECTORY = '/var/log/mqsf/'
+DEFAULT_JOB_DIRECTORY_TEMPLATE = '{0}_jobs/'
+DEFAULT_BASE_JOB_DIRECTORY = '/var/lib/mqsf/'
+DEFAULT_NO_OP_OKAY = True
+DEFAULT_BASE_THREAD_POOL_COUNT = 10
+DEFAULT_PLUGIN_KEY = 'plugin'
 
 
 class BaseConfig(object):
@@ -31,7 +43,7 @@ class BaseConfig(object):
     information to control the behavior of each service.
     """
     def __init__(self, config_file=None):
-        config_file = config_file or Defaults.get_config()
+        config_file = config_file or DEFAULT_CONFIG_FILE
         self.config_data = None
         try:
             with open(config_file, 'r') as config:
@@ -47,9 +59,9 @@ class BaseConfig(object):
         if self.config_data:
             if element:
                 if self.config_data.get(element):
-                    return self.config_data[element].get(attribute)
+                    return self.config_data[element].get(attribute, None)
             else:
-                return self.config_data.get(attribute)
+                return self.config_data.get(attribute, None)
 
     def get_mq_host(self):
         """
@@ -61,7 +73,7 @@ class BaseConfig(object):
             attribute='mq_host'
         )
 
-        return mq_host or Defaults.get_mq_host()
+        return mq_host or DEFAULT_MQ_HOST
 
     def get_mq_user(self):
         """
@@ -73,7 +85,7 @@ class BaseConfig(object):
             attribute='mq_user'
         )
 
-        return mq_user or Defaults.get_mq_user()
+        return mq_user or DEFAULT_MQ_USER
 
     def get_mq_pass(self):
         """
@@ -85,7 +97,7 @@ class BaseConfig(object):
             attribute='mq_pass'
         )
 
-        return mq_pass or Defaults.get_mq_pass()
+        return mq_pass or DEFAULT_MQ_PASS
 
     def get_log_directory(self):
         """
@@ -94,7 +106,7 @@ class BaseConfig(object):
         :rtype: string
         """
         log_dir = self._get_attribute(attribute='log_dir')
-        return log_dir or Defaults.get_log_directory()
+        return log_dir or DEFAULT_LOG_DIRECTORY
 
     def get_log_file(self, service):
         """
@@ -114,10 +126,10 @@ class BaseConfig(object):
         :rtype: string
         """
         base_job_dir = self._get_attribute(attribute='base_job_dir')
-        base_job_dir = base_job_dir or Defaults.get_base_job_directory()
+        base_job_dir = base_job_dir or DEFAULT_BASE_JOB_DIRECTORY
         return os.path.join(
             base_job_dir,
-            Defaults.get_job_directory(service_name)
+            DEFAULT_JOB_DIRECTORY_TEMPLATE.format(service_name)
         )
 
     def get_previous_service(self):
@@ -138,7 +150,9 @@ class BaseConfig(object):
         Return the no op status for the service from config.
         """
         no_op_okay = self._get_attribute(attribute='no_op_okay')
-        return no_op_okay or Defaults.get_no_op_okay()
+        if no_op_okay is None:
+            return DEFAULT_NO_OP_OKAY
+        return no_op_okay
 
     def get_base_thread_pool_count(self):
         """
@@ -149,11 +163,11 @@ class BaseConfig(object):
         base_thread_pool_count = self._get_attribute(
             attribute='base_thread_pool_count'
         )
-        return base_thread_pool_count or Defaults.get_base_thread_pool_count()
+        return base_thread_pool_count or DEFAULT_BASE_THREAD_POOL_COUNT
 
     def get_plugin_key(self):
         """
         Return the plugin key name to use for determining what plugin to run.
         """
         plugin_key = self._get_attribute(attribute='plugin_key')
-        return plugin_key or 'plugin'
+        return plugin_key or DEFAULT_PLUGIN_KEY
