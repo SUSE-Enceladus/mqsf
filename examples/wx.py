@@ -38,8 +38,8 @@ class CurrentPlugin(object):
     def run_task(self, data, log_callback):
         """Get current Wx for given location"""
         data['wx_data'] = {
-            'Temp': '15C',
-            'Humidity': '56%'
+            'Temp': '22C',
+            'Humidity': '34%'
         }
 
 
