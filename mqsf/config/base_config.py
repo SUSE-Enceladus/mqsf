@@ -150,3 +150,10 @@ class BaseConfig(object):
             attribute='base_thread_pool_count'
         )
         return base_thread_pool_count or Defaults.get_base_thread_pool_count()
+
+    def get_plugin_key(self):
+        """
+        Return the plugin key name to use for determining what plugin to run.
+        """
+        plugin_key = self._get_attribute(attribute='plugin_key')
+        return plugin_key or 'plugin'

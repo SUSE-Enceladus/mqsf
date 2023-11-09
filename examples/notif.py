@@ -16,10 +16,23 @@
 #
 # -*- coding: utf-8 -*-
 
-from pluggy import HookimplMarker, PluginManager
+import json
 
-hookimpl = HookimplMarker('mqsf')
-"""Marker to be imported and used in plugins (and for own implementations)"""
+from mqsf.main import main
+from mqsf import hookimpl, plugin_manager
 
-plugin_manager = PluginManager('mqsf')
-"""PM to be be imported and used to register plugins"""
+
+class EmailPlugin(object):
+    @hookimpl
+    def run_task(self, data, log_callback):
+        """Send email notification with Wx data"""
+        wx_info = data['wx_data']
+        print(json.dumps(wx_info))
+
+
+def run():
+    plugin_manager.register(EmailPlugin, 'email')
+    main('notif')
+
+
+run()

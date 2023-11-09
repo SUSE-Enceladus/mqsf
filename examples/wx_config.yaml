@@ -1,0 +1,5 @@
+mq_user: user
+mq_pass: password
+previous_service: user
+plugin_key: data_type
+no_op_okay: false
