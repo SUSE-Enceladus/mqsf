@@ -2,6 +2,19 @@
 #
 # This file is part of mqsf.
 #
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# -*- coding: utf-8 -*-
 
 import json
 import os
@@ -18,10 +31,8 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 
 from pytz import utc
 
-from mqsf.exceptions import MessageServiceException
 from mqsf.service import Service
 from mqsf.status_levels import EXCEPTION, SUCCESS
-from mqsf.json_format import JsonFormat
 from mqsf.job_factory import BaseJobFactory
 from mqsf import no_op_job
 from mqsf.utils import (
@@ -96,6 +107,24 @@ class MessageService(Service):
         restart_jobs(self.job_directory, self._add_job)
         self.start()
 
+    def _add_job(self, job_config):
+        """
+        Load and schedule job if job id does not already exist.
+        """
+        job_id = job_config['id']
+
+        if job_id not in self.jobs:
+            self.jobs[job_id] = job_config
+            self.log.info(
+                'Job will be scheduled.',
+                extra={'job_id': job_id}
+            )
+            self._schedule_job(job_id)
+        else:
+            self.log.warning(
+                'Job already scheduled.',
+                extra={'job_id': job_id}
+            )
 
     def _cleanup_job(self, job_id):
         """
@@ -192,7 +221,7 @@ class MessageService(Service):
                 self.service_exchange,
                 event.exception
             )
-            job.add_error_msg(msg)
+            job_config.get('errors', []).append(msg)
             self.log.error(
                 msg,
                 extra=metadata
@@ -221,7 +250,7 @@ class MessageService(Service):
         This should not happen as no jobs are scheduled, log any occurrences.
         """
         job_id = event.job_id
-        metadata ={'job_id': job_id}
+        metadata = {'job_id': job_id}
 
         self.log.warning(
             'Job missed during {0}.'.format(
@@ -274,8 +303,10 @@ class MessageService(Service):
             self.log.error(
                 'Invalid job: {0}.'.format(error)
             )
-
-        plugin.run_task(job_config, self.log)
+            job_config['status'] = EXCEPTION
+            job_config.get('errors', []).append(error)
+        else:
+            plugin.run_task(job_config, self.log)
 
     def _get_listener_msg(self, message, key):
         """Load json and attempt to get message by key."""
