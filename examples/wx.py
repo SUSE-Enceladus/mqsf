@@ -43,10 +43,6 @@ class CurrentPlugin(object):
         }
 
 
-def run():
-    plugin_manager.register(ForecastPlugin, 'forecast')
-    plugin_manager.register(CurrentPlugin, 'current')
-    main('wx')
-
-
-run()
+plugin_manager.register(ForecastPlugin, 'forecast')
+plugin_manager.register(CurrentPlugin, 'current')
+main('wx')
