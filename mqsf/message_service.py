@@ -49,20 +49,21 @@ class MessageService(Service):
     """
     def post_init(self):
         """Initialize base service class and job scheduler."""
-        self.listener_queue = 'listener'
-        self.listener_msg_key = 'listener_msg'
+        self.listener_queue = f'{self.service_name}.listener'
 
         self.jobs = {}
 
         # setup service job directory
         self.job_directory = self.config.get_job_directory(
-            self.service_exchange
+            self.service_name
         )
         os.makedirs(
             self.job_directory, exist_ok=True
         )
 
         self.prev_service = self.config.get_previous_service()
+        self.exchange = self.config.get_mq_exchange()
+        self.routing_key = self.config.get_mq_routing_key()
 
         plugin_manager.add_hookspecs(MQSFSpec)
         plugin_manager.load_setuptools_entrypoints('mqsf')
@@ -72,20 +73,20 @@ class MessageService(Service):
 
         # Create job factory
         self.job_factory = BaseJobFactory(
-            service_name=self.service_exchange,
+            service_name=self.service_name,
             plugin_manager=plugin_manager,
             plugin_key=self.config.get_plugin_key(),
             can_skip=self.config.get_no_op_okay()
         )
 
         logfile_handler = setup_logfile(
-            self.config.get_log_file(self.service_exchange)
+            self.config.get_log_file(self.service_name)
         )
         self.log.addHandler(logfile_handler)
 
         self.bind_queue(
-            self.prev_service,
-            self.listener_msg_key,
+            self.exchange,
+            self.routing_key,
             self.listener_queue
         )
 
@@ -180,6 +181,7 @@ class MessageService(Service):
 
         if job_id and job_id not in self.jobs:
             self.jobs[job_id] = listener_msg
+            listener_msg['routing_key'] = message.method['routing_key']
 
             job_file = '{0}job-{1}.json'.format(
                 self.job_directory,
@@ -217,7 +219,7 @@ class MessageService(Service):
         if event.exception:
             job_config['status'] = EXCEPTION
             msg = 'Exception in {0}: {1}'.format(
-                self.service_exchange,
+                self.service_name,
                 event.exception
             )
             job_config.get('errors', []).append(msg)
@@ -228,14 +230,14 @@ class MessageService(Service):
         elif job_config['status'] == SUCCESS:
             self.log.info(
                 '{0} successful.'.format(
-                    self.service_exchange
+                    self.service_name
                 ),
                 extra=metadata
             )
         else:
             self.log.error(
                 'Error occurred in {0}.'.format(
-                    self.service_exchange
+                    self.service_name
                 ),
                 extra=metadata
             )
@@ -253,7 +255,7 @@ class MessageService(Service):
 
         self.log.warning(
             'Job missed during {0}.'.format(
-                self.service_exchange
+                self.service_name
             ),
             extra=metadata
         )
@@ -262,10 +264,11 @@ class MessageService(Service):
         """
         Publish message to next service exchange.
         """
+        routing_key = self.get_next_routing_key(job_config)
         message = self._get_status_message(job_config)
 
         try:
-            self.publish_job_result(self.service_exchange, message)
+            self._publish(self.exchange, routing_key, message)
         except AMQPError:
             self.log.warning(
                 'Message not received: {0}'.format(message),
@@ -327,11 +330,12 @@ class MessageService(Service):
         """
         return JsonFormat.json_message(job_config)
 
-    def publish_job_result(self, exchange, message):
+    def get_next_routing_key(self, message):
         """
-        Publish the result message to the listener queue on given exchange.
         """
-        self._publish(exchange, self.listener_msg_key, message)
+        current_key = message.pop('routing_key')
+
+        return current_key.replace(self.prev_service, self.service_name)
 
     def start(self):
         """
@@ -341,7 +345,7 @@ class MessageService(Service):
         self.consume_queue(
             self._handle_listener_message,
             self.listener_queue,
-            self.prev_service
+            self.exchange
         )
 
         try:

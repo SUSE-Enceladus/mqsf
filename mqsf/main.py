@@ -36,7 +36,7 @@ def run_service(service_name):
 
         # run service, enter main loop
         MessageService(
-            service_exchange=service_name
+            service_name=service_name
         )
     except MQSFException as e:
         # known exception

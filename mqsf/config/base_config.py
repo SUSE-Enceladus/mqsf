@@ -30,6 +30,8 @@ DEFAULT_MQ_PASS = 'guest'
 DEFAULT_MQ_PORT = 5672
 DEFAULT_MQ_VHOST = '/'
 DEFAULT_MQ_HEARTBEAT = 600
+DEFAULT_MQ_EXCHANGE = 'mqsf'
+DEFAULT_MQ_EXCHANGE_TYPE = 'topic'
 DEFAULT_LOG_DIRECTORY = '/var/log/mqsf/'
 DEFAULT_JOB_DIRECTORY_TEMPLATE = '{0}_jobs/'
 DEFAULT_BASE_JOB_DIRECTORY = '/var/lib/mqsf/'
@@ -137,6 +139,47 @@ class BaseConfig(object):
         )
 
         return mq_heartbeat or DEFAULT_MQ_HEARTBEAT
+
+    def get_mq_exchange(self):
+        """
+        Return the MQ exchange name.
+
+        :rtype: string
+        """
+        mq_exchange = self._get_attribute(
+            attribute='mq_exchange'
+        )
+
+        return mq_exchange or DEFAULT_MQ_EXCHANGE
+
+    def get_mq_routing_key(self):
+        """
+        Return the MQ incoming routing key.
+
+        :rtype: string
+        """
+        mq_routing_key = self._get_attribute(
+            attribute='mq_routing_key'
+        )
+
+        if not mq_routing_key:
+            raise MQSFConfigException(
+                'mq_routing_key is required in config file.'
+            )
+
+        return mq_routing_key
+
+    def get_mq_exchange_type(self):
+        """
+        Return the MQ exchange type.
+
+        :rtype: string
+        """
+        mq_exchange_type = self._get_attribute(
+            attribute='mq_exchange_type'
+        )
+
+        return mq_exchange_type or DEFAULT_MQ_EXCHANGE_TYPE
 
     def get_log_directory(self):
         """
