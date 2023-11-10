@@ -191,11 +191,12 @@ def get_logging_formatter():
     )
 
 
-def setup_mq_log_handler(host, username, password):
+def setup_mq_log_handler(host, username, password, port):
     rabbit_handler = MQHandler(
         host=host,
         username=username,
         password=password,
+        port=port,
         routing_key='mqsf.logger'
     )
     rabbit_handler.setFormatter(get_logging_formatter())

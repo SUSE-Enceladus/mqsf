@@ -28,8 +28,12 @@ class MQHandler(SocketHandler):
     Log handler for sending messages to MQ.
     """
     def __init__(
-        self, host='localhost', port=5672, exchange='logger',
-        username='guest', password='guest',
+        self,
+        host='localhost',
+        port=5672,
+        exchange='logger',
+        username='guest',
+        password='guest',
         routing_key='mqsf.logger'
     ):
         """
