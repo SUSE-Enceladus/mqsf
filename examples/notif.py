@@ -30,9 +30,5 @@ class EmailPlugin(object):
         print(json.dumps(wx_info))
 
 
-def run():
-    plugin_manager.register(EmailPlugin, 'email')
-    main('notif')
-
-
-run()
+plugin_manager.register(EmailPlugin, 'email')
+main('notif')
