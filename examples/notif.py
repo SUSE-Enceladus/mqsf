@@ -18,7 +18,7 @@
 
 import json
 
-from mqsf.main import main
+from mqsf.main import run_service
 from mqsf import hookimpl, plugin_manager
 
 
@@ -31,4 +31,4 @@ class EmailPlugin(object):
 
 
 plugin_manager.register(EmailPlugin, 'email')
-main('notif')
+run_service('notif')

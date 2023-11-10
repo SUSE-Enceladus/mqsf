@@ -25,7 +25,7 @@ from mqsf.exceptions import MQSFException
 from mqsf.message_service import MessageService
 
 
-def main(service_name):
+def run_service(service_name):
     """
     mqsf - create service application entry point
     """

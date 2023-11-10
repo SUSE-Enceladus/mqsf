@@ -16,7 +16,7 @@
 #
 # -*- coding: utf-8 -*-
 
-from mqsf.main import main
+from mqsf.main import run_service
 from mqsf import hookimpl, plugin_manager
 
 
@@ -45,4 +45,4 @@ class CurrentPlugin(object):
 
 plugin_manager.register(ForecastPlugin, 'forecast')
 plugin_manager.register(CurrentPlugin, 'current')
-main('wx')
+run_service('wx')
