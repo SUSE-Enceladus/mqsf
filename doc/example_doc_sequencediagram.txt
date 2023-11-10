@@ -1,0 +1,66 @@
+title MQSF service workflow
+
+
+participant INITIATOR
+participantgroup #lightgrey USER EXCHANGE
+fontawesome5regular f0f3 RK 'listener'
+fontawesome5regular f0f3 RK 'listener_msg'
+end
+participantgroup MQSF BASED SERVICE - WX
+participantgroup #lightblue Provided by MQSF
+participant MQSF BASE WX
+end
+participantgroup #lightgreen Implemented by the service
+participant CONFIG
+participant PLUGIN 'current'
+participant PLUGIN 'forecast'
+end
+end
+participantgroup #lightgrey WX EXCHANGE
+fontawesome5regular f0f3 RK 'listener' wx
+fontawesome5regular f0f3 RK 'listener_msg' wx
+end
+participantgroup MQSF BASED SERVICE - NOTIF
+participantgroup #lightblue Provided by MQSF
+participant MQSF BASE NOTIF
+end
+participantgroup #lightgreen Implemented by the service
+participant CONFIG notif
+participant PLUGIN 'email'
+participant PLUGIN 'slack'
+end
+end
+participantgroup #lightgrey NOTIF EXCHANGE
+fontawesome5regular f0f3 RK 'listener' notif
+fontawesome5regular f0f3 RK 'listener_msg' notif
+end
+# Initializations
+
+parallel
+CONFIG-->MQSF BASE WX: Provides simple config
+CONFIG notif-->MQSF BASE NOTIF: Provides simple config
+parallel off
+parallel
+PLUGIN 'current'-->MQSF BASE WX: provides hook implementation
+PLUGIN 'email'-->MQSF BASE NOTIF: provides hook implementation
+parallel off
+parallel
+PLUGIN 'forecast'-->MQSF BASE WX: provides hook implementation
+PLUGIN 'slack'-->MQSF BASE NOTIF: provides hook implementation
+parallel off
+parallel
+MQSF BASE WX-->RK 'listener_msg': Binds queue to this RK
+MQSF BASE NOTIF-->RK 'listener_msg' wx: Binds queue to this RK
+parallel off
+box over INITIATOR: The INITIATOR is the logic that \n would start the flow publishing.
+INITIATOR->RK 'listener_msg': Publishes service request job
+RK 'listener_msg'->MQSF BASE WX: Receives the message
+box over MQSF BASE WX: Depending on the value\nof some key, the plugin\nimplementation is selected
+MQSF BASE WX->PLUGIN 'current': Logic provided by the service by plugin\n is executed.
+PLUGIN 'current'->MQSF BASE WX: Return response
+MQSF BASE WX-->RK 'listener_msg' wx: Publishes result to trigger next service in the chain
+RK 'listener_msg' wx->MQSF BASE NOTIF: Receives the message
+box over MQSF BASE NOTIF: Depending on the value\nof some key, the plugin\nimplementation is selected
+MQSF BASE NOTIF->PLUGIN 'email': Logic provided by the service by plugin\n is executed.
+PLUGIN 'email'->MQSF BASE NOTIF: Return response
+MQSF BASE NOTIF-->RK 'listener_msg' notif: Publishes result to trigger next service in the chain
