@@ -36,15 +36,15 @@ class Service(object):
     * :attr:`host`
       MQ server host
 
-    * :attr:`service_exchange`
-      Name of service exchange
+    * :attr:`service_name`
+      Name of service name
     """
-    def __init__(self, service_exchange):
+    def __init__(self, service_name):
         self.channel = None
         self.connection = None
 
-        self.service_exchange = service_exchange
-        self.config = BaseConfig(f'/etc/mqsf/{service_exchange}_config.yaml')  # TODO: determine how to set config file
+        self.service_name = service_name
+        self.config = BaseConfig(f'/etc/mqsf/{service_name}_config.yaml')  # TODO: determine how to set config file
 
         # mq settings
         self.mq_host = self.config.get_mq_host()
@@ -53,12 +53,13 @@ class Service(object):
         self.mq_port = self.config.get_mq_port()
         self.mq_vhost = self.config.get_mq_vhost()
         self.mq_heartbeat = self.config.get_mq_heartbeat()
+        self.mq_exchange_type = self.config.get_mq_exchange_type()
 
         self._open_connection()
 
         logging.basicConfig()
         self.log = logging.getLogger(
-            '{0}Service'.format(self.service_exchange.title())
+            '{0}Service'.format(self.service_name.title())
         )
         self.log.setLevel(logging.DEBUG)
         self.log.propagate = False
@@ -82,14 +83,14 @@ class Service(object):
         """
         pass
 
-    def _declare_direct_exchange(self, exchange):
+    def _declare_exchange(self, exchange, exchange_type):
         """
         Declare/create exchange and set as durable.
 
         The exchange, queues and messages will survive a broker restart.
         """
         self.channel.exchange.declare(
-            exchange=exchange, exchange_type='direct', durable=True
+            exchange=exchange, exchange_type=exchange_type, durable=True
         )
 
     def _declare_queue(self, queue):
@@ -153,7 +154,7 @@ class Service(object):
 
         All messages that match the routing key will be inserted in queue.
         """
-        self._declare_direct_exchange(exchange)
+        self._declare_exchange(exchange, self.config.get_mq_exchange_type())
         queue = self._get_queue_name(exchange, name)
         self._declare_queue(queue)
         self.channel.queue.bind(

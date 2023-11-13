@@ -1,5 +1,8 @@
 mq_user: user
 mq_pass: password
+mq_vhost: my_vhost
+mq_exchange: weather
+mq_routing_key: weather.wx
 previous_service: wx
 plugin_key: notification_type
 no_op_okay: false
